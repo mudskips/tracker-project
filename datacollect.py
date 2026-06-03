@@ -13,7 +13,7 @@ print(f"loaded. connecting to default camera")
 cap = cv2.VideoCapture(0)
 
 recording = False
-sign_name = "infinite void"
+sign_name = "neutral"
 target_file = f"{sign_name}.csv"
 
 while True:
@@ -24,14 +24,18 @@ while True:
     detection = detector.detect(mp_ready_frame)
     if detection.hand_landmarks:
         data = []
-        for hand in detection.hand_landmarks:
-            for landmark in hand:
-                data.append(landmark.x)
-                data.append(landmark.y)
-        while len(data) < 84:
+        wrist_y = detection.hand_landmarks[0][0].y
+        wrist_x = detection.hand_landmarks[0][0].x
+        for landmark in detection.hand_landmarks[0]:
+            data.append(landmark.x - wrist_x)
+            data.append(landmark.y - wrist_y)
+            x = int(landmark.x * frame.shape[1])
+            y = int(landmark.y * frame.shape[0])
+            cv2.circle(frame, (x, y), 6, (0, 30, 0), -1)
+        while len(data) < 42:
             data.append(0.0)
         if recording:
-            with open(filename = target_file, mode = "a", newline = "") as df:
+            with open(file = target_file, mode = "a", newline = "") as df:
                 writer = csv.writer(df)
                 writer.writerow([sign_name]+ data)
     if recording:
@@ -40,7 +44,7 @@ while True:
     else:
         status = f"press r to record"
         color = (255, 255, 255)
-    
+
     cv2.putText(frame, status, (10, 40), cv2.FONT_HERSHEY_COMPLEX, 1, color, 2)
     cv2.imshow("data collection", frame)
 
