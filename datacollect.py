@@ -13,7 +13,7 @@ print(f"loaded. connecting to default camera")
 cap = cv2.VideoCapture(0)
 
 recording = False
-sign_name = "neutral"
+sign_name = "natural"
 target_file = f"{sign_name}.csv"
 
 while True:
