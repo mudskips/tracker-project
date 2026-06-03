@@ -2,6 +2,11 @@ import cv2
 import mediapipe as mp
 import csv
 
+#testing sync on mac 
+
+
+
+
 Base_options = mp.tasks.BaseOptions
 Hand_detector =mp.tasks.vision.HandLandmarker
 Hand_detector_options = mp.tasks.vision.HandLandmarkerOptions
