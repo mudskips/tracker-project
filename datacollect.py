@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import csv
 
 Base_options = mp.tasks.BaseOptions
 Hand_detector =mp.tasks.vision.HandLandmarker
@@ -28,5 +29,26 @@ while True:
                 data.append(landmark.x)
                 data.append(landmark.y)
         while len(data) < 84:
-            row.append(0.0)
+            data.append(0.0)
+        if recording:
+            with open(filename = target_file, mode = "a", newline = "") as df:
+                writer = csv.writer(df)
+                writer.writerow([sign_name]+ data)
+    if recording:
+        status = "o recording o"
+        color = (0, 0, 255)
+    else:
+        status = f"press r to record"
+        color = (255, 255, 255)
+    
+    cv2.putText(frame, status, (10, 40), cv2.FONT_HERSHEY_COMPLEX, 1, color, 2)
+    cv2.imshow("data collection", frame)
+
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord("r"):
+        recording = not recording
+    if key == ord(" "):
+        break
+
+
         
