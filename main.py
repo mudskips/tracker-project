@@ -9,7 +9,14 @@ Hand_detector =mp.tasks.vision.HandLandmarker
 Hand_detector_options = mp.tasks.vision.HandLandmarkerOptions
 options = Hand_detector_options(Base_options(model_asset_path="hand_landmarker.task"), num_hands=2)
 
+segmenter = mp.tasks.vision.ImageSegmenter.create_from_options(
+    mp.tasks.vision.ImageSegmenterOptions(
+        base_options=mp.tasks.BaseOptions(model_asset_path="selfie_segmenter_landscape.tflite"),
+        output_category_mask=True
+    )
+)
 
+invoid_vid = cv2.VideoCapture("invoid.mp4")
 
 detector = Hand_detector.create_from_options(options)
 print(f"loaded. connecting to default camera")
@@ -25,6 +32,9 @@ while True:
     rgb_corrected = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_ready_frame = mp.Image(image_format= mp.ImageFormat.SRGB, data=rgb_corrected)
     detection = detector.detect(mp_ready_frame)
+    segmentation_result = segmenter.segment(mp_ready_frame)
+    mask = segmentation_result.category_mask.numpy_view()
+    cv2.imshow("mask", mask)
     if detection.hand_landmarks:
         data = []
         wrist_y = detection.hand_landmarks[0][0].y
