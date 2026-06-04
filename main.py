@@ -23,7 +23,7 @@ print(f"loaded. connecting to default camera")
 
 cap = cv2.VideoCapture(0)
 counter = 0
-threshold = 60
+threshold = 30
 triggered = False
 
 while True:
@@ -34,6 +34,7 @@ while True:
     detection = detector.detect(mp_ready_frame)
     segmentation_result = segmenter.segment(mp_ready_frame)
     mask = segmentation_result.category_mask.numpy_view()
+    print("mask shape:", mask.shape)
     cv2.imshow("mask", mask)
     if detection.hand_landmarks:
         data = []
@@ -50,7 +51,21 @@ while True:
             counter += 1
         if counter > threshold and not triggered:
             triggered = True
-            print("infinite void")
-    cv2.imshow("P*lantir drone (press space to close)", frame)
+    if triggered:
+        ret_vid, vid_frame = invoid_vid.read()
+        if not ret_vid:
+            invoid_vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret_vid, vid_frame = invoid_vid.read()
+        vid_frame = cv2.resize(vid_frame, (frame.shape[1], frame.shape[0]))
+        person_mask = (mask == 0).astype(np.uint8)
+        bg_mask = (mask != 0).astype(np.uint8)
+        person_mask_3d = np.dstack([person_mask, person_mask, person_mask])
+        bg_mask_3d = np.dstack([bg_mask, bg_mask, bg_mask])
+        you = frame * person_mask_3d
+        back = vid_frame * bg_mask_3d
+        composite = you + back
+        cv2.imshow("Infinite Void", composite)
+    else:
+        cv2.imshow("Infinite Void Playground", frame)
     if cv2.waitKey(1) & 0xFF == ord(" "):
         break
