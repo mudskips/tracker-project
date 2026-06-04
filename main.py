@@ -9,10 +9,15 @@ Hand_detector =mp.tasks.vision.HandLandmarker
 Hand_detector_options = mp.tasks.vision.HandLandmarkerOptions
 options = Hand_detector_options(Base_options(model_asset_path="hand_landmarker.task"), num_hands=2)
 
+
+
 detector = Hand_detector.create_from_options(options)
 print(f"loaded. connecting to default camera")
 
 cap = cv2.VideoCapture(0)
+counter = 0
+threshold = 60
+triggered = False
 
 while True:
     result, frame = cap.read()
@@ -31,8 +36,11 @@ while True:
             y = int(landmark.y * frame.shape[0])
             cv2.circle(frame, (x, y), 6, (0, 30, 0), -1)
         model_prediction= my_model.predict([data])[0]
-        print(model_prediction)
+        if model_prediction == "infinite void":
+            counter += 1
+        if counter > threshold and not triggered:
+            triggered = True
+            print("infinite void")
     cv2.imshow("P*lantir drone (press space to close)", frame)
     if cv2.waitKey(1) & 0xFF == ord(" "):
         break
-
