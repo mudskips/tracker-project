@@ -3,8 +3,8 @@ import mediapipe as mp
 import joblib
 import numpy as np
 import time
-my_model = joblib.load("domain_model.pkl")
 
+my_model = joblib.load("domain_model.pkl")
 Base_options = mp.tasks.BaseOptions
 Hand_detector =mp.tasks.vision.HandLandmarker
 Hand_detector_options = mp.tasks.vision.HandLandmarkerOptions
@@ -19,7 +19,6 @@ segmenter = mp.tasks.vision.ImageSegmenter.create_from_options(
 
 detector = Hand_detector.create_from_options(options)
 print(f"loaded. connecting to default camera")
-
 cap = cv2.VideoCapture(0)
 cap_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 cap_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -67,6 +66,7 @@ while True:
     now = time.time()
     elapsed = now - last_time
     last_time = now
+
     if triggered:
         bg_frame_idx = (bg_frame_idx + elapsed * bg_fps) % bg_frame_count
         vid_frame = bg_frames[int(bg_frame_idx)]
