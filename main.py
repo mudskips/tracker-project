@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import joblib
 import numpy as np
+import time
 my_model = joblib.load("domain_model.pkl")
 
 Base_options = mp.tasks.BaseOptions
@@ -16,15 +17,31 @@ segmenter = mp.tasks.vision.ImageSegmenter.create_from_options(
     )
 )
 
-invoid_vid = cv2.VideoCapture("invoid.mp4")
-
 detector = Hand_detector.create_from_options(options)
 print(f"loaded. connecting to default camera")
 
 cap = cv2.VideoCapture(0)
+cap_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+cap_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+print("preloading background video...")
+invoid_vid = cv2.VideoCapture("invoid.mp4")
+bg_fps = invoid_vid.get(cv2.CAP_PROP_FPS)
+bg_frames = []
+while True:
+    ret, f = invoid_vid.read()
+    if not ret:
+        break
+    bg_frames.append(cv2.resize(f, (cap_w, cap_h)))
+invoid_vid.release()
+bg_frames = np.array(bg_frames)
+bg_frame_count = len(bg_frames)
+bg_frame_idx = 0.0
+print(f"loaded {bg_frame_count} background frames")
 counter = 0
-threshold = 30
+threshold = 15
 triggered = False
+last_time = time.time()
 
 while True:
     result, frame = cap.read()
@@ -32,10 +49,6 @@ while True:
     rgb_corrected = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_ready_frame = mp.Image(image_format= mp.ImageFormat.SRGB, data=rgb_corrected)
     detection = detector.detect(mp_ready_frame)
-    segmentation_result = segmenter.segment(mp_ready_frame)
-    mask = segmentation_result.category_mask.numpy_view()
-    print("mask shape:", mask.shape)
-    cv2.imshow("mask", mask)
     if detection.hand_landmarks:
         data = []
         wrist_y = detection.hand_landmarks[0][0].y
@@ -51,21 +64,17 @@ while True:
             counter += 1
         if counter > threshold and not triggered:
             triggered = True
+    now = time.time()
+    elapsed = now - last_time
+    last_time = now
     if triggered:
-        ret_vid, vid_frame = invoid_vid.read()
-        if not ret_vid:
-            invoid_vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ret_vid, vid_frame = invoid_vid.read()
-        vid_frame = cv2.resize(vid_frame, (frame.shape[1], frame.shape[0]))
-        person_mask = (mask == 0).astype(np.uint8)
-        bg_mask = (mask != 0).astype(np.uint8)
-        person_mask_3d = np.dstack([person_mask, person_mask, person_mask])
-        bg_mask_3d = np.dstack([bg_mask, bg_mask, bg_mask])
-        you = frame * person_mask_3d
-        back = vid_frame * bg_mask_3d
-        composite = you + back
+        bg_frame_idx = (bg_frame_idx + elapsed * bg_fps) % bg_frame_count
+        vid_frame = bg_frames[int(bg_frame_idx)]
+        segmentation_result = segmenter.segment(mp_ready_frame)
+        mask = segmentation_result.category_mask.numpy_view()
+        composite = np.where(mask == 0, frame, vid_frame)
         cv2.imshow("Infinite Void", composite)
     else:
-        cv2.imshow("Infinite Void Playground", frame)
+        cv2.imshow("Infinite Void", frame)
     if cv2.waitKey(1) & 0xFF == ord(" "):
         break
